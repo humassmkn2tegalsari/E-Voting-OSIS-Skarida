@@ -533,11 +533,9 @@
         setTimeout(() => toast.classList.add('hidden'), 3500);
     }
 
-    // ====== KONVERSI URL GOOGLE DRIVE DI CLIENT ======
     function convertDriveUrl(url) {
         if (!url || String(url).trim() === '') return '';
         url = String(url).trim();
-        
         if (url.includes('lh3.googleusercontent.com')) return url;
         if (url.includes('drive.google.com/uc')) return url;
         
@@ -557,7 +555,7 @@
         return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff&size=400&bold=true`;
     }
 
-    // ====== CHECK VOTING STATUS ======
+    // ====== CHECK VOTING STATUS (Untuk Background Polling) ======
     async function checkVotingStatus() {
         try {
             const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=checkVotingStatus&_t=${Date.now()}`);
@@ -575,7 +573,6 @@
                 } else {
                     stopCountdown();
                 }
-                
                 return votingStatus;
             }
         } catch (e) {
@@ -641,25 +638,19 @@
 
     function updateCountdown() {
         if (!VOTING_END_DATE) return;
-        
         const now = new Date();
         let targetDate = VOTING_END_DATE;
-        let label = "Berakhir dalam";
         
-        // Jika belum mulai, countdown ke waktu mulai
         if (VOTING_START_DATE && now < VOTING_START_DATE) {
             targetDate = VOTING_START_DATE;
-            label = "Dimulai dalam";
         }
         
         const diff = targetDate - now;
-        
         if (diff <= 0) {
             document.getElementById('cdHari').innerText = "00";
             document.getElementById('cdJam').innerText = "00";
             document.getElementById('cdMenit').innerText = "00";
             document.getElementById('cdDetik').innerText = "00";
-            // Refresh status jika countdown habis
             checkVotingStatus();
             return;
         }
@@ -675,44 +666,98 @@
         document.getElementById('cdDetik').innerText = String(detik).padStart(2, '0');
     }
 
-    // ====== FETCH CONFIG ======
-    async function fetchConfigData() {
+    // ====== SHOW VOTING PAGE (DIOPTIMALKAN UNTUK KECEPATAN) ======
+    async function showVotingPage() {
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('votingPage').classList.remove('hidden');
+        
+        document.getElementById('displayNama').innerText = currentUser.nama;
+        document.getElementById('displayInfo').innerText = `${currentUser.kelas} • ${currentUser.jurusan || 'Siswa'}`;
+
+        // Tampilkan loading state yang halus agar user tahu sistem sedang bekerja
+        document.getElementById('kandidatList').innerHTML = `
+            <div class="col-span-2 text-center py-10 glass-card rounded-[2rem]">
+                <div class="relative w-12 h-12 mx-auto mb-4">
+                    <div class="absolute inset-0 border-4 border-indigo-500/20 rounded-full"></div>
+                    <div class="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
+                </div>
+                <p class="text-sm font-bold text-slate-500 animate-pulse">Memuat data pemilihan...</p>
+            </div>`;
+        lucide.createIcons();
+
         try {
+            // 1. PANGGIL getConfig (Sekarang sudah termasuk data status voting & total siswa)
+            // Ini memangkas 1x request network yang sebelumnya memakan waktu ~1.5 detik
             const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=getConfig&_t=${Date.now()}`);
             const result = await res.json();
             
             if (result.status === "success") {
-                // Update judul dan subjudul acara
-                if (result.data.judulAcara) {
-                    document.getElementById('judulAcaraDisplay').innerText = result.data.judulAcara;
-                }
-                if (result.data.subjudulAcara) {
-                    document.getElementById('subjudulAcaraDisplay').innerText = result.data.subjudulAcara;
+                const data = result.data;
+                
+                // Update UI Judul
+                if (data.judulAcara) document.getElementById('judulAcaraDisplay').innerText = data.judulAcara;
+                if (data.subjudulAcara) document.getElementById('subjudulAcaraDisplay').innerText = data.subjudulAcara;
+                
+                // Update State Voting
+                votingStatus = data.votingStatus;
+                VOTING_START_DATE = data.startTime ? new Date(data.startTime) : null;
+                VOTING_END_DATE = data.endTime ? new Date(data.endTime) : null;
+                totalSiswa = data.totalSiswa || 500;
+                
+                // Update Banner Status
+                updateStatusBanner({
+                    votingStatus: data.votingStatus,
+                    message: data.statusMessage
+                });
+                
+                if (votingStatus === "active") {
+                    startCountdown();
+                } else {
+                    stopCountdown();
                 }
                 
-                // Parse kandidat dengan konversi URL foto
-                if (result.data.kandidat && Array.isArray(result.data.kandidat)) {
-                    KANDIDAT = result.data.kandidat.map(k => {
-                        let fotoUrl = k.URLFoto || '';
-                        fotoUrl = convertDriveUrl(fotoUrl);
-                        
-                        return {
-                            id: parseInt(k.ID),
-                            nomor: k.NomorUrut,
-                            nama: k.NamaKetua,
-                            wakil: k.NamaWakil,
-                            kelas: k.Kelas,
-                            foto: fotoUrl,
-                            fotoFallback: getFallbackAvatar(k.NamaKetua),
-                            visi: k.Visi || '-',
-                            misi: k.Misi ? String(k.Misi).split('\n').filter(m => m.trim()) : [],
-                            proker: k.ProgramKerja || '-'
-                        };
-                    });
+                // Parse Kandidat
+                if (data.kandidat && Array.isArray(data.kandidat)) {
+                    KANDIDAT = data.kandidat.map(k => ({
+                        id: parseInt(k.ID),
+                        nomor: k.NomorUrut,
+                        nama: k.NamaKetua,
+                        wakil: k.NamaWakil,
+                        kelas: k.Kelas,
+                        foto: k.URLFoto || '',
+                        fotoFallback: getFallbackAvatar(k.NamaKetua),
+                        visi: k.Visi || '-',
+                        misi: k.Misi ? String(k.Misi).split('\n').filter(m => m.trim()) : [],
+                        proker: k.ProgramKerja || '-'
+                    }));
                 }
             }
+            
+            // 2. PANGGIL hasil dan notifikasi secara PARALEL di background (Tidak memblokir UI)
+            Promise.all([
+                fetchVotingResults(),
+                fetchAndShowNotif()
+            ]).catch(err => console.error("Background fetch error:", err));
+
+            // 3. Cek status local storage
+            const savedVote = localStorage.getItem('evoting_hasVoted_' + currentUser.username);
+            if (savedVote) {
+                hasVoted = true;
+                votedTo = KANDIDAT.find(k => k.id === parseInt(savedVote));
+            }
+
+            // 4. Render ke layar
+            renderKandidat();
+            
         } catch (e) {
-            console.error("Gagal fetch config:", e);
+            console.error("Gagal memuat data:", e);
+            document.getElementById('kandidatList').innerHTML = `
+                <div class="col-span-2 text-center py-10 glass-card rounded-[2rem]">
+                    <i data-lucide="alert-circle" class="w-12 h-12 text-rose-500 mx-auto mb-3"></i>
+                    <p class="text-sm font-bold text-rose-600">Gagal memuat data. Periksa koneksi internet.</p>
+                    <button onclick="showVotingPage()" class="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tap-scale">Coba Lagi</button>
+                </div>`;
+            lucide.createIcons();
         }
     }
 
@@ -759,28 +804,6 @@
         document.getElementById('loginUser').value = '';
         document.getElementById('loginPass').value = '';
         showToast("Berhasil Logout", "emerald");
-    }
-
-    // ====== SHOW VOTING PAGE ======
-    async function showVotingPage() {
-        document.getElementById('loginPage').classList.add('hidden');
-        document.getElementById('votingPage').classList.remove('hidden');
-        
-        document.getElementById('displayNama').innerText = currentUser.nama;
-        document.getElementById('displayInfo').innerText = `${currentUser.kelas} • ${currentUser.jurusan || 'Siswa'}`;
-
-        const status = await checkVotingStatus();
-        await fetchConfigData();
-
-        const savedVote = localStorage.getItem('evoting_hasVoted_' + currentUser.username);
-        if (savedVote) {
-            hasVoted = true;
-            votedTo = KANDIDAT.find(k => k.id === parseInt(savedVote));
-        }
-
-        renderKandidat();
-        fetchVotingResults();
-        fetchAndShowNotif();
     }
 
     window.onload = async () => {
@@ -1115,10 +1138,11 @@
         lucide.createIcons();
     }
 
+    // Background Polling (Setiap 15 detik)
     setInterval(() => {
         if (currentUser && !document.getElementById('votingPage').classList.contains('hidden')) {
-            checkVotingStatus();
-            fetchVotingResults();
+            checkVotingStatus().catch(console.error);
+            fetchVotingResults().catch(console.error);
         }
     }, 15000);
 
