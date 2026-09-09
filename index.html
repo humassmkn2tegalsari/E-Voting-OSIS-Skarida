@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#000000">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="E-Voting OSIS">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta charset="UTF-8">
+    <title>E-Voting OSIS - SMK Negeri 2 Tegalsari</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --aero-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at top left, #f0f4ff 0%, #ffffff 40%, #fdf2f8 100%);
+            background-attachment: fixed;
+            color: #1e293b;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--aero-shadow);
+        }
+        .aero-blur { backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .gradient-text {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .tap-scale { transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .tap-scale:active { transform: scale(0.95); }
+        .animate-in { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .modal-backdrop { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+        .modal-slide-in { animation: modalSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes modalSlide { from { opacity: 0; transform: translateY(40px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        
+        .candidate-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .candidate-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -10px rgba(99, 102, 241, 0.25);
+        }
+        .candidate-card.selected {
+            border: 3px solid #6366f1 !important;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15), 0 20px 40px -10px rgba(99, 102, 241, 0.3);
+        }
+        .candidate-card.voted {
+            opacity: 0.7;
+            filter: grayscale(0.3);
+            cursor: not-allowed;
+        }
+        
+        .progress-bar {
+            height: 12px;
+            border-radius: 9999px;
+            background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%);
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .winner-badge {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: white;
+            animation: pulse-gold 2s infinite;
+        }
+        @keyframes pulse-gold {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7); }
+            50% { box-shadow: 0 0 0 12px rgba(251, 191, 36, 0); }
+        }
+        
+        .tab-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            color: white;
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4);
+        }
+        .tab-btn:not(.active) {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: #64748b;
+        }
+        
+        .countdown-digit {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+            border-radius: 1rem;
+            padding: 0.75rem 1rem;
+            min-width: 65px;
+            font-variant-numeric: tabular-nums;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .modal-preview-container { max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+        .modal-preview-header { flex-shrink: 0; }
+        .modal-preview-content {
+            flex: 1; overflow-y: auto; overflow-x: hidden; padding: 1.5rem; min-height: 0;
+            scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
+        }
+        .modal-preview-content::-webkit-scrollbar { width: 6px; }
+        .modal-preview-content::-webkit-scrollbar-track { background: transparent; }
+        .modal-preview-content::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+        
+        .badge-number {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 20px;
+            border: 4px solid white;
+            box-shadow: 0 8px 20px -5px rgba(99, 102, 241, 0.5);
+            z-index: 10;
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .status-banner {
+            animation: slideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .img-fallback {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+<!-- NOTIFIKASI POPUP -->
+<div id="notifPopup" class="hidden fixed top-[100px] left-1/2 z-[150] w-11/12 max-w-md" style="transform: translate(-50%, -30px); opacity: 0; transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);">
+    <div class="glass-card bg-amber-50/90 border border-amber-200 rounded-2xl shadow-2xl p-5 relative">
+        <button onclick="closeNotif()" class="absolute top-3 right-3 text-amber-600 hover:text-amber-800 hover:bg-amber-100 rounded-full p-1 transition-all">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+        <div class="flex items-start gap-4 pr-6">
+            <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                <i data-lucide="bell" class="w-6 h-6"></i>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-xs font-black text-amber-800 uppercase tracking-widest mb-1">Pengumuman Penting!</h3>
+                <p id="notifText" class="text-sm font-bold text-amber-900 leading-relaxed"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[100px] -z-10 animate-pulse"></div>
+<div class="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-pink-500/10 rounded-full blur-[100px] -z-10"></div>
+
+<!-- TOAST -->
+<div id="statusToast" class="hidden fixed top-6 inset-x-4 z-[300] flex justify-center transform transition-all duration-300 pointer-events-none">
+    <div id="toastContent" class="aero-blur bg-white/95 border px-6 py-4 rounded-3xl shadow-2xl flex items-center gap-3 pointer-events-auto">
+        <i id="toastIcon" data-lucide="info" class="w-5 h-5"></i>
+        <span id="toastMessage" class="font-bold text-sm tracking-tight text-slate-700">Pesan</span>
+    </div>
+</div>
+
+<!-- STATUS VOTING BANNER -->
+<div id="votingStatusBanner" class="hidden fixed top-0 left-0 right-0 z-[250] p-4">
+    <div class="max-w-4xl mx-auto">
+        <div id="statusNotStarted" class="hidden glass-card bg-amber-50/95 border border-amber-200 p-4 rounded-2xl status-banner flex items-center gap-3">
+            <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                <i data-lucide="clock" class="w-5 h-5"></i>
+            </div>
+            <div class="flex-1">
+                <p class="text-sm font-black text-amber-800">Pemilihan Belum Dimulai</p>
+                <p class="text-xs font-bold text-amber-600">Silakan tunggu hingga waktu yang ditentukan</p>
+            </div>
+        </div>
+        <div id="statusClosed" class="hidden glass-card bg-slate-50/95 border border-slate-200 p-4 rounded-2xl status-banner flex items-center gap-3">
+            <div class="w-10 h-10 bg-slate-200 text-slate-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                <i data-lucide="lock" class="w-5 h-5"></i>
+            </div>
+            <div class="flex-1">
+                <p class="text-sm font-black text-slate-800">Pemilihan Telah Ditutup</p>
+                <p class="text-xs font-bold text-slate-500">Terima kasih atas partisipasi Anda</p>
+            </div>
+        </div>
+        <div id="statusInactive" class="hidden glass-card bg-rose-50/95 border border-rose-200 p-4 rounded-2xl status-banner flex items-center gap-3">
+            <div class="w-10 h-10 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                <i data-lucide="pause-circle" class="w-5 h-5"></i>
+            </div>
+            <div class="flex-1">
+                <p class="text-sm font-black text-rose-800">Pemilihan Sedang Dinonaktifkan</p>
+                <p class="text-xs font-bold text-rose-600">Administrator sedang menonaktifkan sistem</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PREVIEW KANDIDAT -->
+<div id="previewModal" class="hidden fixed inset-0 z-[200] modal-backdrop flex items-end sm:items-center justify-center p-4">
+    <div class="glass-card w-full max-w-md rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden modal-slide-in bg-white/95 modal-preview-container">
+        <div id="previewHeader" class="modal-preview-header relative h-64 bg-gradient-to-br from-indigo-500 to-purple-600 overflow-hidden">
+            <img id="previewFoto" src="" alt="Foto Kandidat" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+            <div id="previewBadge" class="absolute top-4 right-4 w-16 h-16 rounded-full bg-white/20 backdrop-blur-md border-2 border-white/40 flex items-center justify-center text-white font-black text-2xl">1</div>
+            <div class="absolute bottom-4 left-4 right-4">
+                <h2 id="previewNama" class="text-2xl font-black text-white tracking-tight drop-shadow-lg"></h2>
+                <p id="previewInfo" class="text-xs font-bold text-white/90 uppercase tracking-widest"></p>
+            </div>
+        </div>
+        <div class="modal-preview-content space-y-5">
+            <div class="bg-slate-50 p-4 rounded-2xl">
+                <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5 mb-2">
+                    <i data-lucide="target" class="w-3 h-3"></i> Visi
+                </h3>
+                <p id="previewVisi" class="text-sm font-bold text-slate-700 leading-relaxed"></p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-2xl">
+                <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5 mb-3">
+                    <i data-lucide="rocket" class="w-3 h-3"></i> Misi
+                </h3>
+                <ul id="previewMisi" class="space-y-2 text-sm font-bold text-slate-700"></ul>
+            </div>
+            <div class="bg-gradient-to-br from-indigo-50 to-purple-50 p-4 rounded-2xl border border-indigo-100">
+                <h3 class="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-1.5 mb-2">
+                    <i data-lucide="briefcase" class="w-3 h-3"></i> Program Kerja Unggulan
+                </h3>
+                <p id="previewProker" class="text-sm font-bold text-slate-700 leading-relaxed"></p>
+            </div>
+        </div>
+        <div class="p-4 bg-slate-50/80 backdrop-blur-md border-t border-slate-100 flex gap-3">
+            <button type="button" onclick="closePreview()" class="tap-scale flex-1 py-4 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-colors">Tutup</button>
+            <button type="button" id="btnPilihDariPreview" class="tap-scale flex-1 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2">
+                <i data-lucide="check" class="w-4 h-4"></i><span>Pilih Kandidat</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL KONFIRMASI VOTE -->
+<div id="confirmModal" class="hidden fixed inset-0 z-[210] modal-backdrop flex items-center justify-center p-4">
+    <div class="glass-card w-full max-w-sm rounded-[2.5rem] overflow-hidden modal-slide-in bg-white/95 p-8 space-y-6 text-center">
+        <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-indigo-500/30">
+            <i data-lucide="vote" class="w-10 h-10 text-white"></i>
+        </div>
+        <div>
+            <h2 class="text-xl font-black gradient-text tracking-tight">Konfirmasi Pilihan</h2>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Pilihan Anda bersifat rahasia</p>
+        </div>
+        <div class="glass-card p-5 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50">
+            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Anda memilih pasangan no.</p>
+            <p id="confirmNomor" class="text-4xl font-black gradient-text tracking-tighter">01</p>
+            <p id="confirmNama" class="text-sm font-black text-slate-800 mt-2">-</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl flex items-start gap-2">
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5"></i>
+            <p class="text-[10px] font-bold text-amber-700 leading-tight text-left">Pastikan pilihan Anda sudah benar. Setelah dikonfirmasi, suara tidak dapat diubah atau dibatalkan.</p>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="closeConfirm()" class="tap-scale flex-1 py-4 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest">Batal</button>
+            <button id="btnKonfirmasi" onclick="submitVote()" class="tap-scale flex-1 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2">
+                <i data-lucide="check-circle" class="w-4 h-4"></i><span>Konfirmasi</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL SUKSES -->
+<div id="successModal" class="hidden fixed inset-0 z-[220] modal-backdrop flex items-center justify-center p-4">
+    <div class="glass-card w-full max-w-sm rounded-[2.5rem] overflow-hidden modal-slide-in bg-white/95 p-10 space-y-6 text-center">
+        <div class="relative w-28 h-28 mx-auto">
+            <div class="absolute inset-0 bg-emerald-500/20 rounded-full animate-ping"></div>
+            <div class="relative w-full h-full rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-2xl shadow-emerald-500/40">
+                <i data-lucide="check" class="w-14 h-14 text-white" stroke-width="3"></i>
+            </div>
+        </div>
+        <div>
+            <h2 class="text-2xl font-black text-emerald-600 tracking-tight">Terima Kasih!</h2>
+            <p class="text-sm font-bold text-slate-500 mt-2">Suara Anda telah tercatat dengan aman dan rahasia.</p>
+        </div>
+        <div class="glass-card p-4 rounded-2xl bg-slate-50">
+            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Pilihan Anda</p>
+            <p id="successNama" class="text-sm font-black text-slate-800">-</p>
+        </div>
+        <button onclick="closeSuccess()" class="tap-scale w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-500/30">Lihat Hasil Sementara</button>
+    </div>
+</div>
+
+<!-- HALAMAN LOGIN -->
+<div id="loginPage" class="min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-md glass-card rounded-[3rem] p-10 space-y-10 relative overflow-hidden animate-in">
+        <div class="absolute top-0 right-0 p-8 opacity-5"><i data-lucide="vote" class="w-32 h-32"></i></div>
+        <div class="text-center space-y-4">
+            <div class="w-32 h-32 flex items-center justify-center mx-auto animate-float">
+                <img src="https://lh3.googleusercontent.com/d/15zyF01OHtEgTl8p6bvEkz7xw30ByE2en" alt="Logo Sekolah" class="w-full h-full object-contain drop-shadow-2xl" onerror="this.src='https://ui-avatars.com/api/?name=SMK&background=6366f1&color=fff'">
+            </div>
+            <div class="space-y-1">
+                <h1 class="text-3xl font-black gradient-text tracking-tighter">E-Voting OSIS</h1>
+                <p class="text-slate-400 text-[11px] font-bold tracking-widest uppercase">Pemilihan Ketua OSIS</p>
+                <p class="text-slate-400 text-[9px] font-bold tracking-widest uppercase">SMK Negeri 2 Tegalsari</p>
+            </div>
+        </div>
+        <div class="space-y-6">
+            <div class="relative group">
+                <i data-lucide="user" class="absolute left-5 top-5 w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors"></i>
+                <input type="text" id="loginUser" class="w-full pl-14 pr-6 py-5 bg-white/30 border border-white/20 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none" placeholder="NISN / Username">
+            </div>
+            <div class="relative group">
+                <i data-lucide="key-round" class="absolute left-5 top-5 w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors"></i>
+                <input type="password" id="loginPass" class="w-full pl-14 pr-14 py-5 bg-white/30 border border-white/20 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none" placeholder="Password Keamanan">
+                <button type="button" onclick="togglePasswordVisibility()" class="absolute right-5 top-5 text-slate-400 hover:text-indigo-500 transition-colors focus:outline-none">
+                    <i id="togglePassIcon" data-lucide="eye" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <button id="btnLogin" onclick="handleLogin()" class="tap-scale w-full py-5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-[2rem] font-black text-sm tracking-[0.2em] shadow-xl shadow-indigo-500/20 uppercase transition-all">Masuk</button>
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest opacity-60 text-center">Dikembangkan oleh Humas SMK Negeri 2 Tegalsari</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- HALAMAN UTAMA VOTING -->
+<div id="votingPage" class="hidden p-4 md:p-8 animate-in">
+    <div class="max-w-4xl mx-auto space-y-6">
+        <!-- HEADER -->
+        <div class="flex items-center justify-between glass-card p-4 rounded-[2rem] sticky top-4 z-50">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+                    <i data-lucide="user-check" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 id="displayNama" class="text-sm font-black text-slate-800 truncate max-w-[150px]">Memuat...</h1>
+                    <p id="displayInfo" class="text-[9px] font-bold text-slate-400 uppercase tracking-tight"></p>
+                </div>
+            </div>
+            <button onclick="handleLogout()" class="tap-scale w-10 h-10 flex items-center justify-center bg-rose-500/10 text-rose-500 rounded-xl hover:bg-rose-500/20 transition-colors">
+                <i data-lucide="power" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- BANNER EVENT -->
+        <div class="glass-card rounded-[3rem] p-8 text-center space-y-4 bg-gradient-to-br from-indigo-600/5 to-purple-600/5 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl"></div>
+            <div class="relative">
+                <div id="votingStatusBadge" class="inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-3">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    Pemilihan Aktif
+                </div>
+                
+                <!-- JUDUL ACARA DINAMIS -->
+                <h2 id="judulAcaraDisplay" class="text-3xl md:text-4xl font-black gradient-text tracking-tighter">PILKETOS 2025</h2>
+                <p id="subjudulAcaraDisplay" class="text-slate-500 text-xs font-bold uppercase tracking-widest">SATU SUARA, SATU MASA DEPAN</p>
+                
+                <!-- COUNTDOWN -->
+                <div id="countdownContainer" class="flex justify-center gap-2 md:gap-3 mt-6 flex-wrap">
+                    <div class="countdown-digit text-center">
+                        <div id="cdHari" class="text-2xl md:text-3xl font-black">00</div>
+                        <div class="text-[8px] font-bold uppercase tracking-widest text-slate-400 mt-1">Hari</div>
+                    </div>
+                    <div class="countdown-digit text-center">
+                        <div id="cdJam" class="text-2xl md:text-3xl font-black">00</div>
+                        <div class="text-[8px] font-bold uppercase tracking-widest text-slate-400 mt-1">Jam</div>
+                    </div>
+                    <div class="countdown-digit text-center">
+                        <div id="cdMenit" class="text-2xl md:text-3xl font-black">00</div>
+                        <div class="text-[8px] font-bold uppercase tracking-widest text-slate-400 mt-1">Menit</div>
+                    </div>
+                    <div class="countdown-digit text-center">
+                        <div id="cdDetik" class="text-2xl md:text-3xl font-black">00</div>
+                        <div class="text-[8px] font-bold uppercase tracking-widest text-slate-400 mt-1">Detik</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STATS BAR -->
+        <div class="grid grid-cols-3 gap-3">
+            <div class="glass-card p-4 rounded-2xl text-center">
+                <i data-lucide="users" class="w-5 h-5 text-indigo-500 mx-auto mb-1"></i>
+                <p id="statPemilih" class="text-xl font-black text-slate-800">0</p>
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Sudah Memilih</p>
+            </div>
+            <div class="glass-card p-4 rounded-2xl text-center">
+                <i data-lucide="user-x" class="w-5 h-5 text-rose-500 mx-auto mb-1"></i>
+                <p id="statBelum" class="text-xl font-black text-slate-800">0</p>
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Belum Memilih</p>
+            </div>
+            <div class="glass-card p-4 rounded-2xl text-center">
+                <i data-lucide="percent" class="w-5 h-5 text-emerald-500 mx-auto mb-1"></i>
+                <p id="statPercent" class="text-xl font-black text-slate-800">0%</p>
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Partisipasi</p>
+            </div>
+        </div>
+
+        <!-- TAB NAVIGATION -->
+        <div class="flex gap-2 glass-card p-2 rounded-[2rem]">
+            <button class="tab-btn active flex-1 py-3 rounded-[1.5rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2" onclick="switchTab('vote')">
+                <i data-lucide="vote" class="w-4 h-4"></i>
+                <span>Pilih</span>
+            </button>
+            <button class="tab-btn flex-1 py-3 rounded-[1.5rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2" onclick="switchTab('result')">
+                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                <span>Hasil</span>
+            </button>
+        </div>
+
+        <!-- TAB VOTE -->
+        <div id="tabVote" class="space-y-4">
+            <div id="votedStatus" class="hidden glass-card p-6 rounded-[2.5rem] text-center space-y-3 bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200">
+                <div class="w-16 h-16 mx-auto rounded-full bg-emerald-100 flex items-center justify-center">
+                    <i data-lucide="check-circle-2" class="w-8 h-8 text-emerald-600"></i>
+                </div>
+                <h3 class="text-sm font-black text-emerald-800 uppercase tracking-widest">Anda Sudah Memilih</h3>
+                <p class="text-xs font-bold text-emerald-600">Terima kasih telah berpartisipasi! Pilihan Anda: <span id="votedTo" class="font-black">-</span></p>
+            </div>
+
+            <div id="kandidatList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+            <button id="btnSubmitVote" onclick="openConfirm()" disabled class="tap-scale w-full py-5 rounded-[2rem] font-black text-sm tracking-[0.3em] transition-all shadow-2xl bg-slate-500/10 text-slate-400 border border-slate-500/10 uppercase flex items-center justify-center gap-2">
+                <i data-lucide="check" class="w-5 h-5"></i>
+                <span>Pilih Kandidat Terlebih Dahulu</span>
+            </button>
+        </div>
+
+        <!-- TAB HASIL -->
+        <div id="tabResult" class="hidden space-y-4">
+            <div id="resultContainer" class="space-y-4"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ====== KONFIGURASI ======
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyrmTjba3U9RFhK_Dv6i1gJ5BF811a6wY-tYvCltPI8A2IzsytbpPWujuvSk2zTXOki/exec";
+    
+    // State aplikasi
+    let currentUser = null;
+    let selectedCandidateId = null;
+    let isSubmitting = false;
+    let votingResults = {}; 
+    let totalPemilih = 0;
+    let totalSiswa = 500;
+    let hasVoted = false;
+    let votedTo = null;
+    let KANDIDAT = [];
+    let VOTING_START_DATE = null;
+    let VOTING_END_DATE = null;
+    let votingStatus = "not_configured";
+    let countdownInterval = null;
+
+    lucide.createIcons();
+
+    // ====== UTIL ======
+    function togglePasswordVisibility() {
+        const passInput = document.getElementById('loginPass');
+        const icon = document.getElementById('togglePassIcon');
+        if (passInput.type === "password") { 
+            passInput.type = "text"; 
+            icon.setAttribute('data-lucide', 'eye-off'); 
+        } else { 
+            passInput.type = "password"; 
+            icon.setAttribute('data-lucide', 'eye'); 
+        }
+        lucide.createIcons();
+    }
+
+    function showToast(message, color) {
+        const toast = document.getElementById('statusToast');
+        const content = document.getElementById('toastContent');
+        const icon = document.getElementById('toastIcon');
+        document.getElementById('toastMessage').textContent = message;
+        
+        if (color === 'emerald') {
+            content.className = "aero-blur bg-white/95 border border-emerald-500/20 px-6 py-4 rounded-3xl shadow-2xl flex items-center gap-3 text-emerald-600";
+            icon.setAttribute('data-lucide', 'check-circle');
+        } else if (color === 'amber') {
+            content.className = "aero-blur bg-white/95 border border-amber-500/20 px-6 py-4 rounded-3xl shadow-2xl flex items-center gap-3 text-amber-600";
+            icon.setAttribute('data-lucide', 'alert-triangle');
+        } else {
+            content.className = "aero-blur bg-white/95 border border-rose-500/20 px-6 py-4 rounded-3xl shadow-2xl flex items-center gap-3 text-rose-600";
+            icon.setAttribute('data-lucide', 'alert-circle');
+        }
+        lucide.createIcons();
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 3500);
+    }
+
+    // ====== KONVERSI URL GOOGLE DRIVE DI CLIENT ======
+    function convertDriveUrl(url) {
+        if (!url || String(url).trim() === '') return '';
+        url = String(url).trim();
+        
+        if (url.includes('lh3.googleusercontent.com')) return url;
+        if (url.includes('drive.google.com/uc')) return url;
+        
+        const matchUc = url.match(/id=([a-zA-Z0-9_-]+)/);
+        if (matchUc) return `https://lh3.googleusercontent.com/d/${matchUc[1]}`;
+        
+        const matchFile = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (matchFile) return `https://lh3.googleusercontent.com/d/${matchFile[1]}`;
+        
+        const matchThumb = url.match(/\/d\/([a-zA-Z0-9_-]+)\/thumbnail/);
+        if (matchThumb) return `https://lh3.googleusercontent.com/d/${matchThumb[1]}`;
+        
+        return url;
+    }
+
+    function getFallbackAvatar(name) {
+        return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff&size=400&bold=true`;
+    }
+
+    // ====== CHECK VOTING STATUS ======
+    async function checkVotingStatus() {
+        try {
+            const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=checkVotingStatus&_t=${Date.now()}`);
+            const result = await res.json();
+            
+            if (result.status === "success") {
+                votingStatus = result.data.votingStatus;
+                updateStatusBanner(result.data);
+                
+                if (result.data.startTime) VOTING_START_DATE = new Date(result.data.startTime);
+                if (result.data.endTime) VOTING_END_DATE = new Date(result.data.endTime);
+                
+                if (votingStatus === "active") {
+                    startCountdown();
+                } else {
+                    stopCountdown();
+                }
+                
+                return votingStatus;
+            }
+        } catch (e) {
+            console.error("Gagal cek status:", e);
+        }
+        return "error";
+    }
+
+    function updateStatusBanner(data) {
+        const banner = document.getElementById('votingStatusBanner');
+        const notStarted = document.getElementById('statusNotStarted');
+        const closed = document.getElementById('statusClosed');
+        const inactive = document.getElementById('statusInactive');
+        const statusBadge = document.getElementById('votingStatusBadge');
+        
+        notStarted.classList.add('hidden');
+        closed.classList.add('hidden');
+        inactive.classList.add('hidden');
+        banner.classList.add('hidden');
+        
+        if (data.votingStatus === "not_started") {
+            notStarted.classList.remove('hidden');
+            banner.classList.remove('hidden');
+            if (statusBadge) {
+                statusBadge.className = "inline-flex items-center gap-2 bg-amber-500/10 text-amber-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-3";
+                statusBadge.innerHTML = `<i data-lucide="clock" class="w-3 h-3"></i><span>Belum Dimulai</span>`;
+            }
+        } else if (data.votingStatus === "closed") {
+            closed.classList.remove('hidden');
+            banner.classList.remove('hidden');
+            if (statusBadge) {
+                statusBadge.className = "inline-flex items-center gap-2 bg-slate-500/10 text-slate-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-3";
+                statusBadge.innerHTML = `<i data-lucide="lock" class="w-3 h-3"></i><span>Telah Selesai</span>`;
+            }
+        } else if (data.votingStatus === "inactive") {
+            inactive.classList.remove('hidden');
+            banner.classList.remove('hidden');
+            if (statusBadge) {
+                statusBadge.className = "inline-flex items-center gap-2 bg-rose-500/10 text-rose-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-3";
+                statusBadge.innerHTML = `<i data-lucide="pause" class="w-3 h-3"></i><span>Dinonaktifkan</span>`;
+            }
+        } else if (data.votingStatus === "active") {
+            if (statusBadge) {
+                statusBadge.className = "inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-3";
+                statusBadge.innerHTML = `<span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span><span>Pemilihan Aktif</span>`;
+            }
+        }
+        lucide.createIcons();
+    }
+
+    function startCountdown() {
+        if (countdownInterval) clearInterval(countdownInterval);
+        updateCountdown();
+        countdownInterval = setInterval(updateCountdown, 1000);
+    }
+
+    function stopCountdown() {
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+    }
+
+    function updateCountdown() {
+        if (!VOTING_END_DATE) return;
+        
+        const now = new Date();
+        let targetDate = VOTING_END_DATE;
+        let label = "Berakhir dalam";
+        
+        // Jika belum mulai, countdown ke waktu mulai
+        if (VOTING_START_DATE && now < VOTING_START_DATE) {
+            targetDate = VOTING_START_DATE;
+            label = "Dimulai dalam";
+        }
+        
+        const diff = targetDate - now;
+        
+        if (diff <= 0) {
+            document.getElementById('cdHari').innerText = "00";
+            document.getElementById('cdJam').innerText = "00";
+            document.getElementById('cdMenit').innerText = "00";
+            document.getElementById('cdDetik').innerText = "00";
+            // Refresh status jika countdown habis
+            checkVotingStatus();
+            return;
+        }
+        
+        const hari = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const jam = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const menit = Math.floor((diff / (1000 * 60)) % 60);
+        const detik = Math.floor((diff / 1000) % 60);
+        
+        document.getElementById('cdHari').innerText = String(hari).padStart(2, '0');
+        document.getElementById('cdJam').innerText = String(jam).padStart(2, '0');
+        document.getElementById('cdMenit').innerText = String(menit).padStart(2, '0');
+        document.getElementById('cdDetik').innerText = String(detik).padStart(2, '0');
+    }
+
+    // ====== FETCH CONFIG ======
+    async function fetchConfigData() {
+        try {
+            const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=getConfig&_t=${Date.now()}`);
+            const result = await res.json();
+            
+            if (result.status === "success") {
+                // Update judul dan subjudul acara
+                if (result.data.judulAcara) {
+                    document.getElementById('judulAcaraDisplay').innerText = result.data.judulAcara;
+                }
+                if (result.data.subjudulAcara) {
+                    document.getElementById('subjudulAcaraDisplay').innerText = result.data.subjudulAcara;
+                }
+                
+                // Parse kandidat dengan konversi URL foto
+                if (result.data.kandidat && Array.isArray(result.data.kandidat)) {
+                    KANDIDAT = result.data.kandidat.map(k => {
+                        let fotoUrl = k.URLFoto || '';
+                        fotoUrl = convertDriveUrl(fotoUrl);
+                        
+                        return {
+                            id: parseInt(k.ID),
+                            nomor: k.NomorUrut,
+                            nama: k.NamaKetua,
+                            wakil: k.NamaWakil,
+                            kelas: k.Kelas,
+                            foto: fotoUrl,
+                            fotoFallback: getFallbackAvatar(k.NamaKetua),
+                            visi: k.Visi || '-',
+                            misi: k.Misi ? String(k.Misi).split('\n').filter(m => m.trim()) : [],
+                            proker: k.ProgramKerja || '-'
+                        };
+                    });
+                }
+            }
+        } catch (e) {
+            console.error("Gagal fetch config:", e);
+        }
+    }
+
+    // ====== LOGIN ======
+    async function handleLogin() {
+        const user = document.getElementById('loginUser').value.trim();
+        const pass = document.getElementById('loginPass').value.trim();
+        const btn = document.getElementById('btnLogin');
+        if (!user || !pass) return showToast("Mohon isi NISN dan password!", "rose");
+
+        btn.disabled = true;
+        btn.innerHTML = `<span class="animate-pulse">Menghubungkan...</span>`;
+
+        try {
+            const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=login&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`);
+            const result = await response.json();
+            if (result.status === "success") {
+                currentUser = result.data;
+                localStorage.setItem('evoting_session', JSON.stringify(currentUser));
+                await showVotingPage();
+                showToast("Selamat Datang di E-Voting!", "emerald");
+            } else {
+                showToast(result.message || "Gagal Login!", "rose");
+            }
+        } catch (e) {
+            showToast("Kesalahan Jaringan!", "rose");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Masuk";
+        }
+    }
+
+    function handleLogout() {
+        if (!confirm("Yakin ingin keluar?")) return;
+        localStorage.removeItem('evoting_session');
+        localStorage.removeItem('evoting_hasVoted_' + (currentUser ? currentUser.username : ''));
+        currentUser = null;
+        selectedCandidateId = null;
+        hasVoted = false;
+        votedTo = null;
+        
+        document.getElementById('votingPage').classList.add('hidden');
+        document.getElementById('loginPage').classList.remove('hidden');
+        document.getElementById('loginUser').value = '';
+        document.getElementById('loginPass').value = '';
+        showToast("Berhasil Logout", "emerald");
+    }
+
+    // ====== SHOW VOTING PAGE ======
+    async function showVotingPage() {
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('votingPage').classList.remove('hidden');
+        
+        document.getElementById('displayNama').innerText = currentUser.nama;
+        document.getElementById('displayInfo').innerText = `${currentUser.kelas} • ${currentUser.jurusan || 'Siswa'}`;
+
+        const status = await checkVotingStatus();
+        await fetchConfigData();
+
+        const savedVote = localStorage.getItem('evoting_hasVoted_' + currentUser.username);
+        if (savedVote) {
+            hasVoted = true;
+            votedTo = KANDIDAT.find(k => k.id === parseInt(savedVote));
+        }
+
+        renderKandidat();
+        fetchVotingResults();
+        fetchAndShowNotif();
+    }
+
+    window.onload = async () => {
+        const saved = localStorage.getItem('evoting_session');
+        if (saved) {
+            currentUser = JSON.parse(saved);
+            await showVotingPage();
+        } else {
+            await checkVotingStatus();
+        }
+    };
+
+    // ====== RENDER KANDIDAT ======
+    function renderKandidat() {
+        const list = document.getElementById('kandidatList');
+        list.innerHTML = '';
+        
+        if (votingStatus !== "active") {
+            list.innerHTML = `<div class="col-span-2 text-center py-10 glass-card rounded-[2rem]">
+                <i data-lucide="lock" class="w-12 h-12 text-slate-400 mx-auto mb-3"></i>
+                <p class="text-sm font-bold text-slate-500">Voting sedang tidak aktif</p>
+                <p class="text-xs text-slate-400 mt-1">Silakan tunggu hingga waktu yang ditentukan</p>
+            </div>`;
+            lucide.createIcons();
+            return;
+        }
+        
+        if (KANDIDAT.length === 0) {
+            list.innerHTML = '<div class="col-span-2 text-center py-10 glass-card rounded-[2rem]"><p class="text-sm font-bold text-slate-500">Memuat data kandidat...</p></div>';
+            return;
+        }
+        
+        KANDIDAT.forEach(k => {
+            const isVoted = hasVoted;
+            const card = document.createElement('div');
+            card.className = `candidate-card glass-card rounded-[2rem] overflow-hidden ${isVoted ? 'voted' : ''}`;
+            card.innerHTML = `
+                <div class="relative h-48 img-fallback overflow-hidden">
+                    <img src="${k.foto}" alt="${k.nama}" class="w-full h-full object-cover" 
+                         onerror="this.onerror=null; this.src='${k.fotoFallback}';">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                    <div class="badge-number">${k.nomor}</div>
+                    ${isVoted && votedTo && votedTo.id === k.id ? `
+                        <div class="absolute top-4 right-4 bg-emerald-500 text-white px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-lg">
+                            <i data-lucide="check" class="w-3 h-3"></i> Pilihan Anda
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="p-5 space-y-3">
+                    <div>
+                        <h3 class="text-base font-black text-slate-800 leading-tight">${k.nama}</h3>
+                        <p class="text-xs font-bold text-slate-500">& ${k.wakil}</p>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${k.kelas}</p>
+                    </div>
+                    <p class="text-xs text-slate-600 font-bold line-clamp-2">${k.visi}</p>
+                    <div class="flex gap-2">
+                        <button onclick="openPreview(${k.id})" class="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-colors">
+                            Detail
+                        </button>
+                        ${!isVoted ? `
+                            <button onclick="selectCandidate(${k.id})" class="flex-1 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-500/30">
+                                Pilih
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+        
+        if (hasVoted) {
+            document.getElementById('votedStatus').classList.remove('hidden');
+            document.getElementById('votedTo').innerText = votedTo ? `${votedTo.nama} & ${votedTo.wakil} (No. ${votedTo.nomor})` : '-';
+            document.getElementById('btnSubmitVote').disabled = true;
+            document.getElementById('btnSubmitVote').className = "tap-scale w-full py-5 rounded-[2rem] font-black text-sm tracking-[0.3em] bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 uppercase flex items-center justify-center gap-2 cursor-not-allowed";
+            document.getElementById('btnSubmitVote').innerHTML = `<i data-lucide="check-circle" class="w-5 h-5"></i><span>Anda Sudah Memberikan Suara</span>`;
+        }
+        
+        lucide.createIcons();
+    }
+
+    // ====== PREVIEW ======
+    function openPreview(id) {
+        if (votingStatus !== "active") {
+            showToast("Voting sedang tidak aktif", "amber");
+            return;
+        }
+        const k = KANDIDAT.find(c => c.id === id);
+        if (!k) return;
+        
+        document.getElementById('previewFoto').src = k.foto;
+        document.getElementById('previewFoto').onerror = function() { this.src = k.fotoFallback; };
+        document.getElementById('previewNama').innerText = `${k.nama} & ${k.wakil}`;
+        document.getElementById('previewInfo').innerText = `${k.kelas} • Pasangan No. ${k.nomor}`;
+        document.getElementById('previewBadge').innerText = k.nomor;
+        document.getElementById('previewVisi').innerText = k.visi;
+        document.getElementById('previewProker').innerText = k.proker;
+        
+        const misiList = document.getElementById('previewMisi');
+        misiList.innerHTML = '';
+        if (k.misi && k.misi.length > 0) {
+            k.misi.forEach((m, i) => {
+                const li = document.createElement('li');
+                li.className = 'flex gap-2';
+                li.innerHTML = `<span class="text-indigo-500 font-black">${i + 1}.</span><span>${m}</span>`;
+                misiList.appendChild(li);
+            });
+        } else {
+            misiList.innerHTML = '<li class="text-slate-400 italic">Belum ada data misi</li>';
+        }
+        
+        const btnPilih = document.getElementById('btnPilihDariPreview');
+        if (hasVoted) {
+            btnPilih.disabled = true;
+            btnPilih.className = "tap-scale flex-1 py-4 bg-slate-300 text-slate-500 rounded-2xl font-black text-xs uppercase tracking-widest cursor-not-allowed flex items-center justify-center gap-2";
+            btnPilih.innerHTML = `<i data-lucide="ban" class="w-4 h-4"></i><span>Telah Memilih</span>`;
+        } else {
+            btnPilih.disabled = false;
+            btnPilih.onclick = () => { selectCandidate(k.id); closePreview(); };
+            btnPilih.className = "tap-scale flex-1 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2";
+            btnPilih.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i><span>Pilih Kandidat</span>`;
+        }
+        
+        document.getElementById('previewModal').dataset.candidateId = id;
+        document.getElementById('previewModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        lucide.createIcons();
+    }
+
+    function closePreview() {
+        document.getElementById('previewModal').classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    function selectCandidate(id) {
+        if (votingStatus !== "active") {
+            showToast("Voting sedang tidak aktif", "amber");
+            return;
+        }
+        if (hasVoted) {
+            showToast("Anda sudah memberikan suara!", "amber");
+            return;
+        }
+        selectedCandidateId = id;
+        document.querySelectorAll('.candidate-card').forEach(card => card.classList.remove('selected'));
+        const cards = document.querySelectorAll('.candidate-card');
+        const index = KANDIDAT.findIndex(k => k.id === id);
+        if (index >= 0 && cards[index]) cards[index].classList.add('selected');
+        
+        const btn = document.getElementById('btnSubmitVote');
+        btn.disabled = false;
+        btn.className = "tap-scale w-full py-5 rounded-[2rem] font-black text-sm tracking-[0.3em] transition-all shadow-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-0 uppercase flex items-center justify-center gap-2";
+        const k = KANDIDAT.find(c => c.id === id);
+        btn.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i><span>Pilih: ${k.nama} (No. ${k.nomor})</span>`;
+        
+        showToast(`Kandidat No. ${k.nomor} dipilih`, "emerald");
+    }
+
+    function openConfirm() {
+        if (!selectedCandidateId) return showToast("Pilih kandidat terlebih dahulu!", "rose");
+        if (votingStatus !== "active") return showToast("Voting sedang tidak aktif", "amber");
+        const k = KANDIDAT.find(c => c.id === selectedCandidateId);
+        document.getElementById('confirmNomor').innerText = k.nomor;
+        document.getElementById('confirmNama').innerText = `${k.nama} & ${k.wakil}`;
+        document.getElementById('confirmModal').classList.remove('hidden');
+        lucide.createIcons();
+    }
+
+    function closeConfirm() {
+        document.getElementById('confirmModal').classList.add('hidden');
+    }
+
+    async function submitVote() {
+        if (isSubmitting || !selectedCandidateId) return;
+        if (votingStatus !== "active") return showToast("Voting sedang tidak aktif", "amber");
+        if (hasVoted) return showToast("Anda sudah memberikan suara!", "amber");
+        
+        isSubmitting = true;
+        const btn = document.getElementById('btnKonfirmasi');
+        const originalHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<span class="animate-pulse">Mengamankan Suara...</span>`;
+        
+        const now = new Date();
+        const data = {
+            action: "vote",
+            username: currentUser.username,
+            nama: currentUser.nama,
+            kelas: currentUser.kelas,
+            jurusan: currentUser.jurusan,
+            kandidat_id: selectedCandidateId,
+            waktu: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\./g, ':'),
+            tanggal: now.toLocaleDateString('id-ID')
+        };
+
+        try {
+            const response = await fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            
+            if (result.status === "error") {
+                showToast(result.message || "Gagal mengirim suara!", "rose");
+                isSubmitting = false;
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                return;
+            }
+
+            hasVoted = true;
+            votedTo = KANDIDAT.find(k => k.id === selectedCandidateId);
+            localStorage.setItem('evoting_hasVoted_' + currentUser.username, selectedCandidateId.toString());
+            
+            votingResults[selectedCandidateId] = (votingResults[selectedCandidateId] || 0) + 1;
+            totalPemilih += 1;
+            renderResults();
+            
+            closeConfirm();
+            
+            document.getElementById('successNama').innerText = `${votedTo.nama} & ${votedTo.wakil} (No. ${votedTo.nomor})`;
+            document.getElementById('successModal').classList.remove('hidden');
+            lucide.createIcons();
+            
+        } catch (e) {
+            console.error(e);
+            showToast("Gagal mengirim suara!", "rose");
+            isSubmitting = false;
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+        }
+    }
+
+    function closeSuccess() {
+        document.getElementById('successModal').classList.add('hidden');
+        renderKandidat();
+        switchTab('result');
+    }
+
+    function switchTab(tab) {
+        const btns = document.querySelectorAll('.tab-btn');
+        btns.forEach(b => b.classList.remove('active'));
+        
+        if (tab === 'vote') {
+            btns[0].classList.add('active');
+            document.getElementById('tabVote').classList.remove('hidden');
+            document.getElementById('tabResult').classList.add('hidden');
+        } else {
+            btns[1].classList.add('active');
+            document.getElementById('tabVote').classList.add('hidden');
+            document.getElementById('tabResult').classList.remove('hidden');
+            renderResults();
+        }
+        lucide.createIcons();
+    }
+
+    async function fetchVotingResults() {
+        try {
+            const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=getResults&_t=${Date.now()}`);
+            const result = await res.json();
+            if (result.status === "success") {
+                votingResults = result.data.results || {};
+                totalPemilih = result.data.total_voters || 0;
+                totalSiswa = result.data.total_siswa || totalSiswa;
+            }
+        } catch (e) {
+            console.log("Gagal load hasil");
+        }
+        renderResults();
+    }
+
+    function renderResults() {
+        const container = document.getElementById('resultContainer');
+        container.innerHTML = '';
+        
+        const percent = totalSiswa > 0 ? Math.round((totalPemilih / totalSiswa) * 100) : 0;
+        document.getElementById('statPemilih').innerText = totalPemilih;
+        document.getElementById('statBelum').innerText = Math.max(0, totalSiswa - totalPemilih);
+        document.getElementById('statPercent').innerText = percent + '%';
+        
+        let maxSuara = 0;
+        let winnerId = null;
+        KANDIDAT.forEach(k => {
+            const suara = votingResults[k.id] || 0;
+            if (suara > maxSuara) {
+                maxSuara = suara;
+                winnerId = k.id;
+            }
+        });
+        
+        const sorted = [...KANDIDAT].sort((a, b) => (votingResults[b.id] || 0) - (votingResults[a.id] || 0));
+        
+        sorted.forEach((k) => {
+            const suara = votingResults[k.id] || 0;
+            const pct = totalPemilih > 0 ? Math.round((suara / totalPemilih) * 100) : 0;
+            const isWinner = k.id === winnerId && maxSuara > 0;
+            
+            const card = document.createElement('div');
+            card.className = "glass-card p-5 rounded-[2rem] relative overflow-hidden";
+            card.innerHTML = `
+                ${isWinner ? `<div class="absolute top-3 right-3 winner-badge px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1"><i data-lucide="crown" class="w-3 h-3"></i> Unggul</div>` : ''}
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="relative">
+                        <img src="${k.foto}" alt="${k.nama}" class="w-16 h-16 rounded-2xl object-cover shadow-md" 
+                             onerror="this.onerror=null; this.src='${k.fotoFallback}';">
+                        <div class="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-black border-2 border-white">${k.nomor}</div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-sm font-black text-slate-800 truncate">${k.nama}</h3>
+                        <p class="text-[10px] font-bold text-slate-500 truncate">& ${k.wakil}</p>
+                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${k.kelas}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-2xl font-black gradient-text tracking-tighter">${suara}</p>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Suara</p>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Perolehan</span>
+                        <span class="text-sm font-black text-slate-800">${pct}%</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                        <div class="progress-bar" style="width: ${pct}%"></div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+        
+        lucide.createIcons();
+    }
+
+    setInterval(() => {
+        if (currentUser && !document.getElementById('votingPage').classList.contains('hidden')) {
+            checkVotingStatus();
+            fetchVotingResults();
+        }
+    }, 15000);
+
+    async function fetchAndShowNotif() {
+        try {
+            const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=getNotif&_t=${Date.now()}`);
+            const result = await res.json();
+            
+            if (result.status === "success" && result.data) {
+                const popup = document.getElementById('notifPopup');
+                const textEl = document.getElementById('notifText');
+                
+                if (result.data.status && result.data.status.toLowerCase() === 'aktif' && result.data.pesan) {
+                    textEl.innerText = result.data.pesan;
+                    popup.classList.remove('hidden');
+                    void popup.offsetWidth;
+                    popup.style.opacity = '1';
+                    popup.style.transform = 'translate(-50%, 0)';
+                    lucide.createIcons();
+                }
+            }
+        } catch (e) {
+            console.error("Notif gagal:", e);
+        }
+    }
+
+    function closeNotif() {
+        const popup = document.getElementById('notifPopup');
+        popup.style.opacity = '0';
+        popup.style.transform = 'translate(-50%, -30px)';
+        setTimeout(() => popup.classList.add('hidden'), 500);
+    }
+
+    document.getElementById('previewModal').addEventListener('click', (e) => {
+        if (e.target.id === 'previewModal') closePreview();
+    });
+    document.getElementById('confirmModal').addEventListener('click', (e) => {
+        if (e.target.id === 'confirmModal') closeConfirm();
+    });
+    document.getElementById('successModal').addEventListener('click', (e) => {
+        if (e.target.id === 'successModal') closeSuccess();
+    });
+</script>
+</body>
+</html>
